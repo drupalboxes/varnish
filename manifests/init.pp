@@ -1,18 +1,8 @@
-
 class varnish::install {
-  repos::yum { 'varnish':
-    enabled         => 1,
-    descr           => 'Varnish 3.0 for Enterprise Linux 5 - $basearch',
-    gpgcheck        => 0,
-    baseurl         => 'http://repo.varnish-cache.org/redhat/varnish-3.0/el5/$basearch',
-    priority        => 1,
-    reponame        => 'varnish-3.0'
-  }
-  
+
   package { 'varnish':
     name    => $varnish::params::package,
     ensure  => $varnish::params::version,
-    require => Repos::Yum['varnish']
   }
 }
 
@@ -32,6 +22,8 @@ class varnish::config {
   $backend_port       = $varnish::params::backend_port
   $default_vcl        = $varnish::params::default_vcl
   $listen_port        = $varnish::params::listen_port
+  $listen_host        = $varnish::params::listen_host
+  $admin_listen_host  = $varnish::params::admin_listen_host
   $admin_listen_port  = $varnish::params::admin_listen_port
   $purge_ips          = $varnish::params::purge_ips
 
@@ -42,7 +34,7 @@ class varnish::config {
       notify    => Class['varnish::service'],
       content   => template('varnish/default.vcl.erb')
   }
-  
+
   file {
     'varnish/sysconfig':
       path      => $varnish::params::sysconfig,
@@ -54,6 +46,12 @@ class varnish::config {
 
 
 class varnish {
+
+  case $::osfamily {
+    'RedHat': { include varnish::el }
+    default:  { notify { "Class[varnish] does not support $::osfamily": } }
+  }
+
   include varnish::params
   include varnish::install, varnish::config, varnish::service
 }
