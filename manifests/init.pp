@@ -46,12 +46,20 @@ class varnish::config {
 
 
 class varnish {
+  include varnish::params
 
   case $::osfamily {
-    'RedHat': { include varnish::el }
+    'RedHat': {
+      anchor { 'varnish::begin': } ->
+      class { 'varnish::el': } ->
+      class { 'varnish::install': } ->
+      class { 'varnish::config': } ->
+      class { 'varnish::service': } ->
+      anchor { 'varnish::end':
+        require => Anchor['varnish::begin']
+      }
+
+    }
     default:  { notify { "Class[varnish] does not support $::osfamily": } }
   }
-
-  include varnish::params
-  include varnish::install, varnish::config, varnish::service
 }
